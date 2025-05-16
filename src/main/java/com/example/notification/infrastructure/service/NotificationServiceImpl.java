@@ -2,9 +2,9 @@ package com.example.notification.infrastructure.service;
 
 import com.example.notification.application.NotificationService;
 import com.example.notification.domain.UserCreatedEvent;
-import com.example.notification.infrastructure.persistence.NotificationEntity;
-import com.example.notification.infrastructure.persistence.NotificationRepository;
+import com.example.notification.infrastructure.persistence.NotificationMongoRepository;
 import com.example.notification.infrastructure.persistence.NotificationTemplateRepository;
+import com.example.notification.infrastructure.persistence.NotificationDocument;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import jakarta.mail.MessagingException;
@@ -17,15 +17,15 @@ import java.time.LocalDateTime;
 @Service
 public class NotificationServiceImpl implements NotificationService {
     private final JavaMailSender mailSender;
-    private final NotificationRepository notificationRepository;
+    private final NotificationMongoRepository notificationMongoRepository;
     private final NotificationTemplateRepository templateRepository;
 
     @Value("${spring.mail.username}")
     private String fromEmail;
 
-    public NotificationServiceImpl(JavaMailSender mailSender, NotificationRepository notificationRepository, NotificationTemplateRepository templateRepository) {
+    public NotificationServiceImpl(JavaMailSender mailSender, NotificationMongoRepository notificationMongoRepository, NotificationTemplateRepository templateRepository) {
         this.mailSender = mailSender;
-        this.notificationRepository = notificationRepository;
+        this.notificationMongoRepository = notificationMongoRepository;
         this.templateRepository = templateRepository;
     }
 
@@ -48,13 +48,9 @@ public class NotificationServiceImpl implements NotificationService {
             helper.setText(html, true);
             mailSender.send(mimeMessage);
 
-            // Registrar notificación
-            NotificationEntity entity = new NotificationEntity();
-            entity.setEmail(event.getEmail());
-            entity.setSubject(subject);
-            entity.setBody(html);
-            entity.setSentAt(LocalDateTime.now());
-            notificationRepository.save(entity);
+            // Registrar notificación en MongoDB
+            NotificationDocument doc = new NotificationDocument(event.getEmail(), subject, html, LocalDateTime.now());
+            notificationMongoRepository.save(doc);
         } catch (MessagingException e) {
             throw new RuntimeException("Error enviando correo HTML", e);
         }
