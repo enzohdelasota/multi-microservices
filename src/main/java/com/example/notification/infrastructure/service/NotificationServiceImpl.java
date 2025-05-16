@@ -4,6 +4,7 @@ import com.example.notification.application.NotificationService;
 import com.example.notification.domain.UserCreatedEvent;
 import com.example.notification.infrastructure.persistence.NotificationEntity;
 import com.example.notification.infrastructure.persistence.NotificationRepository;
+import com.example.notification.infrastructure.persistence.NotificationTemplateRepository;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import jakarta.mail.MessagingException;
@@ -17,34 +18,33 @@ import java.time.LocalDateTime;
 public class NotificationServiceImpl implements NotificationService {
     private final JavaMailSender mailSender;
     private final NotificationRepository notificationRepository;
+    private final NotificationTemplateRepository templateRepository;
 
     @Value("${spring.mail.username}")
     private String fromEmail;
 
-    public NotificationServiceImpl(JavaMailSender mailSender, NotificationRepository notificationRepository) {
+    public NotificationServiceImpl(JavaMailSender mailSender, NotificationRepository notificationRepository, NotificationTemplateRepository templateRepository) {
         this.mailSender = mailSender;
         this.notificationRepository = notificationRepository;
+        this.templateRepository = templateRepository;
     }
 
     @Override
     @Transactional
     public void sendUserCreatedNotification(UserCreatedEvent event) {
         try {
+            var templateOpt = templateRepository.findByType("USER_CREATED");
+            if (templateOpt.isEmpty()) {
+                throw new RuntimeException("No existe template para USER_CREATED");
+            }
+            var template = templateOpt.get();
             var mimeMessage = mailSender.createMimeMessage();
             var helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
             helper.setFrom(fromEmail);
             helper.setTo(event.getEmail());
-            String subject = "Bienvenido, " + event.getName();
+            String subject = template.getSubject().replace("{{name}}", event.getName());
             helper.setSubject(subject);
-            String html = """
-                <html>
-                <body style='font-family:sans-serif;'>
-                    <h2 style='color:#4CAF50;'>¡Bienvenido, %s!</h2>
-                    <p>Tu usuario ha sido creado exitosamente.</p>
-                    <p style='font-size:12px;color:#888;'>Este es un mensaje automático.</p>
-                </body>
-                </html>
-                """.formatted(event.getName());
+            String html = template.getBody().replace("{{name}}", event.getName());
             helper.setText(html, true);
             mailSender.send(mimeMessage);
 
