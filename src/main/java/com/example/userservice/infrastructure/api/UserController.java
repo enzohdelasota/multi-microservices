@@ -4,6 +4,7 @@ import com.example.userservice.application.UserService;
 import com.example.userservice.domain.User;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/users")
@@ -15,7 +16,7 @@ public class UserController {
     }
 
     @PostMapping
-    public ResponseEntity<User> createUser(@RequestBody User user) {
+    public ResponseEntity<User> createUser(@Valid @RequestBody User user) {
         User created = userService.createUser(user);
         return ResponseEntity.ok(created);
     }
