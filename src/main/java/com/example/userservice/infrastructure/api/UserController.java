@@ -3,6 +3,7 @@ package com.example.userservice.infrastructure.api;
 import com.example.userservice.application.UserService;
 import com.example.userservice.domain.User;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
@@ -15,6 +16,7 @@ public class UserController {
         this.userService = userService;
     }
 
+    @PreAuthorize("hasRole('ROLE_admin')")
     @PostMapping
     public ResponseEntity<User> createUser(@Valid @RequestBody User user) {
         User created = userService.createUser(user);
