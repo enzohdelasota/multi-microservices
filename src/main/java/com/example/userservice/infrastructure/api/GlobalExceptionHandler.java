@@ -36,4 +36,17 @@ public class GlobalExceptionHandler {
         response.put("errors", errors);
         return ResponseEntity.badRequest().body(response);
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ResponseEntity<Map<String, Object>> handleBusinessConflict(IllegalArgumentException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("type", "https://datatracker.ietf.org/doc/html/rfc9457");
+        response.put("title", "Business Conflict");
+        response.put("status", 409);
+        response.put("detail", ex.getMessage());
+        response.put("instance", "about:blank");
+        response.put("timestamp", OffsetDateTime.now().toString());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
 }

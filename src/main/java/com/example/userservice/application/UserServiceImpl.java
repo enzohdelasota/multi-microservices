@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Service
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
@@ -26,10 +28,13 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public User createUser(User user) {
+        Optional<UserEntity> existing = userRepository.findByEmail(user.getEmail());
+        if (existing.isPresent()) {
+            throw new IllegalArgumentException("El correo ya está registrado por otro usuario");
+        }
         UserEntity entity = UserMapper.toEntity(user);
         UserEntity saved = userRepository.save(entity);
         User created = UserMapper.toDomain(saved);
-        // Serializar el usuario a JSON antes de enviarlo a RabbitMQ
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             String userJson = objectMapper.writeValueAsString(created);
