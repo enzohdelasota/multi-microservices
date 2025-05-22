@@ -5,6 +5,7 @@ import com.example.userservice.infrastructure.persistence.UserEntity;
 import com.example.userservice.infrastructure.persistence.UserMapper;
 import com.example.userservice.infrastructure.persistence.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
+@Slf4j
 @Service
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
@@ -28,8 +30,10 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public User createUser(User user) {
+        log.debug("Validando unicidad de email: {}", user.getEmail());
         Optional<UserEntity> existing = userRepository.findByEmail(user.getEmail());
         if (existing.isPresent()) {
+            log.warn("Intento de alta con email ya existente: {}", user.getEmail());
             throw new IllegalArgumentException("El correo ya está registrado por otro usuario");
         }
         UserEntity entity = UserMapper.toEntity(user);
@@ -38,10 +42,13 @@ public class UserServiceImpl implements UserService {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             String userJson = objectMapper.writeValueAsString(created);
+            log.info("Publicando evento user.created en RabbitMQ para usuario id: {}", created.getId());
             rabbitTemplate.convertAndSend(userCreatedQueue, userJson);
         } catch (Exception e) {
+            log.error("Error serializando usuario para RabbitMQ", e);
             throw new RuntimeException("Error serializando usuario para RabbitMQ", e);
         }
+        log.info("Usuario persistido y evento publicado: {}", created.getEmail());
         return created;
     }
 }
