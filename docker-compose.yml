@@ -30,6 +30,21 @@ services:
       - '27017:27017'
     volumes:
       - mongo_data:/data/db
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2.4
+    restart: always
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://db:5432/users
+      KC_DB_USERNAME: springboot
+      KC_DB_PASSWORD: prueba
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    command: start-dev
+    ports:
+      - '8080:8080'
+    depends_on:
+      - db
 volumes:
   db_data:
   mongo_data:
