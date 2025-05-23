@@ -39,7 +39,7 @@ spec:
     spec:
       containers:
         - name: user-service
-          image: user-service:0.0.2
+          image: user-service:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
