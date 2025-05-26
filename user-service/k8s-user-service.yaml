@@ -21,7 +21,7 @@ data:
   RABBIT_PORT: "5672"
   KEYCLOAK_ISSUER_URI: http://host.docker.internal:8080/realms/microservices
   KEYCLOAK_JWK_SET_URI: http://host.docker.internal:8080/realms/microservices/protocol/openid-connect/certs
-  SERVER_PORT: "3000"
+  SERVER_PORT: "4000"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -39,10 +39,10 @@ spec:
     spec:
       containers:
         - name: user-service
-          image: user-service:latest
+          image: user-service:0.0.2
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 3000
+            - containerPort: 4000
           env:
             - name: DB_URL
               valueFrom:
@@ -104,8 +104,8 @@ spec:
   selector:
     app: user-service
   ports:
-    - port: 3000
-      targetPort: 3000
+    - port: 4000
+      targetPort: 4000
       nodePort: 32000
 ---
 apiVersion: networking.k8s.io/v1
@@ -125,4 +125,4 @@ spec:
               service:
                 name: user-service
                 port:
-                  number: 3000
+                  number: 4000
