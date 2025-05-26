@@ -6,6 +6,10 @@ import com.example.userservice.infrastructure.persistence.UserMapper;
 import com.example.userservice.infrastructure.persistence.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+
+import org.slf4j.MDC;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -40,10 +44,16 @@ public class UserServiceImpl implements UserService {
         UserEntity saved = userRepository.save(entity);
         User created = UserMapper.toDomain(saved);
         try {
+            String correlationId = MDC.get("X-Correlation-ID");
             ObjectMapper objectMapper = new ObjectMapper();
             String userJson = objectMapper.writeValueAsString(created);
-            log.info("Publicando evento user.created en RabbitMQ para usuario id: {}", created.getId());
-            rabbitTemplate.convertAndSend(userCreatedQueue, userJson);
+            MessageProperties props = new MessageProperties();
+            if (correlationId != null) {
+                props.setHeader("X-Correlation-ID", correlationId);
+            }
+            Message message = new Message(userJson.getBytes(), props);
+            log.info("Publicando evento user.created en RabbitMQ para usuario id: {} con correlationId: {}", created.getId(), correlationId);
+            rabbitTemplate.send(userCreatedQueue, message);
         } catch (Exception e) {
             log.error("Error serializando usuario para RabbitMQ", e);
             throw new RuntimeException("Error serializando usuario para RabbitMQ", e);
