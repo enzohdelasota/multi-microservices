@@ -37,8 +37,15 @@ public class UserCreatedEventListener {
             log.info("Notificación enviada para usuario: {}", event.getEmail());
         } catch (Exception e) {
             log.error("Error deserializando evento user.created. correlationId: {}. Error: {}", correlationId, e.getMessage(), e);
+            throw new RuntimeException("Error procesando evento user.created", e);
         } finally {
             MDC.remove("X-Correlation-ID");
         }
+    }
+
+    @RabbitListener(queues = "user.created.dlq")
+    public void handleDlq(UserCreatedEvent failedEvent) {
+        log.info("Recibido evento user.created fallido");
+        log.error("Mensaje fallido enviado a DLQ: {}", failedEvent);
     }
 }
